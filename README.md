@@ -1,4 +1,4 @@
-## Agenda digital escrtia en C
+## Agenda digital escrita en C
 
 - Paulo Zamora
 - Eduardo Ojeda
