@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+// #include <lib/pcre3.h>
+#include <pcre3.h>
 
 struct pendiente {
   int fecha;
