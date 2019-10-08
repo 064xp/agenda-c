@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+//pruebas
+
 //estructuras
 struct pendiente { //formato de un solo pendiente
   int hora; //hora del pendiente en formato 24h
