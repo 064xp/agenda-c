@@ -7,6 +7,18 @@
 
 #define OVECCOUNT 30
 
+void extraerPendientesPorDía(char **bufferArchvio, char **substringsExtraidos){
+  char *patron = "";
+}
+//func get todos of by day
+  //gets substrings of day
+  //def struct array with malloc
+  //loop through each substring
+    //realloc struct array + 1
+    //array[last index] = strToStruct(str);
+
+//func turns string into struct
+
 int main(){
   pcre *re;
   const char *error;

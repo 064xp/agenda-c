@@ -4,7 +4,17 @@
 #include <pcre.h>
 
 #include "leerArchivo.h"
-#define ARCHIVO_DEFAULT "test.ics"
+#include "re.h"
+#define ARCHIVO_DEFAULT "agenda.ics"
+
+//////////////prueba///////////////////////
+struct pendiente { //formato de un solo pendiente
+  int hora; //hora del pendiente en formato 24h
+  int minuto;
+  int completado; //si ya esta completada, sera 1
+  char contenido[];
+};
+//////////////prueba///////////////////////
 
 //regex to match field
 // /([field]:.+?)(?=\W[A-Z]+:)/gs
@@ -19,7 +29,8 @@ void cargarArchivo(char* nombreDelArchivo, char** buffer){
   fp = fopen(nombreDelArchivo, "r");
 
   if(fp == NULL){
-    perror("Ocurrio un error al intentar abrir el archivo\n");
+    printf("Ocurrio un error al intentar abrir el archivo\n");
+    exit(1);
   } else {
     //consigue el tamaño del archivo
     fseek(fp, 0L, SEEK_END);
@@ -37,6 +48,16 @@ void cargarArchivo(char* nombreDelArchivo, char** buffer){
   fclose(fp);
 }//fin cargarArchivo
 
+struct pendiente *conseguirPendientesPorDia(int dia, int mes, int year){
+  char *buffer = NULL;
+  char *fechaConFormato;
+  sprintf(fechaConFormato,"%i%i%i", year, mes, dia);
+  cargarArchivo("", &buffer);
+
+
+}
+
+/////////TODO DEBAJO DE AQUI ES PARA FINES DE PRUBEA, SE DEBERA BORRAR AL FINAL
 int main() {
   char *buffer = NULL;
   cargarArchivo("icalexport.ics", &buffer);
