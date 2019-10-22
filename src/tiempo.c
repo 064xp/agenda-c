@@ -4,7 +4,7 @@ void conseguirDiaDeLaSemana(char buffer[]) //asigna al parametro el dia de la se
 {
 	char diasDeLaSemana[7][10] = { "Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"};
 	struct tm *tiempo = conseguirStructTmActual();
-	strcpy(buffer, diasDeLaSemana[0]);
+	strcpy(buffer, diasDeLaSemana[tiempo->tm_wday]);
 }
 
 int conseguirDiaDelMes() //regresa dia del mes en numero (1-31)
