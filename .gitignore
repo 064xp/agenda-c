@@ -1,3 +1,5 @@
 scraps
 avances
-*.exe
+.exe
+.tds
+.dat
