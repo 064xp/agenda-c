@@ -23,6 +23,8 @@ void fijarFecha(fecha*);
 void gotoxy(int, int);
 int escribirArchivo(pendiente *, int);
 pendiente *leerArchivo(int *, char *);
+void interpretarPendiente(void);
+void substr(char *, char *, int, int);
 
 void generarPendientes(pendiente pendientesDeHoy[]);
 
@@ -136,4 +138,31 @@ pendiente *leerArchivo(int *cantidadDePendientes, char *nombreDelArchivo){
     return NULL;
   }
   return buffer;
+}
+
+void interpretarPendiente()
+{
+	int i;
+	char buffer[50];
+	switch(opcion[0])
+	{
+		 case 'a':
+		 case 'A':
+			substr(buffer, opcion, 2, strlen(opcion)-1);
+			printf("\n\nLa opcion que escogiste fue la A y el pendiente fue: %s", buffer); 
+			break;
+		 case 'b':
+		 case 'B':
+			substr(buffer, opcion, 2, strlen(opcion)-1);
+			printf("\n\nLa opcion que escogiste fue la B y la tarea fue: %s", buffer); 
+		 break;
+	}
+	printf("\n\n");
+	system("pause");
+	printf("\n\n\nHecho este programa orgullosamente por un ingeniero de software......AMONOOOOOS\n");
+	getchar();
+}
+
+void substr(char *destino, char *str, int inicio, int final){
+	strncpy(destino, (str+inicio), final-inicio + 1);
 }
