@@ -1,5 +1,8 @@
 scraps
 avances
-.exe
-.tds
-.dat
+*.exe
+*.tds
+*.dat
+*.obj
+src/agenda.exe
+src/agenda.tds
