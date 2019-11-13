@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include "tiempo.h"
 
+#define TAMANO_MAXIMO 250
+
 typedef struct pendiente { //formato de un solo pendiente
   int hora; //hora del pendiente en formato 24h
   int minuto;
   int completado; //si ya esta completada, sera 1
-  char contenido[60];
+  char contenido[60]; //TODO: cambiar esto a tamano maximo
 } pendiente;
 
 typedef struct fecha { //fecha del dia actual
@@ -17,60 +19,69 @@ typedef struct fecha { //fecha del dia actual
 } fecha;
 
 //prototipos
-void menuPrincipal(pendiente[], int, char[], fecha);
+int menuPrincipal(pendiente **, int *, fecha);
 void imprimirPendientesDelDia(struct pendiente[], int);
 void fijarFecha(fecha*);
 void gotoxy(int, int);
 int escribirArchivo(pendiente *, int);
 pendiente *leerArchivo(int *, char *);
-void interpretarPendiente(void);
+void interpretarComando(char *, pendiente **, int *);
 void substr(char *, char *, int, int);
+int agregarPendiente(pendiente, pendiente **, int *);
 
-void generarPendientes(pendiente pendientesDeHoy[]);
+void generarPendientes(pendiente pendientes[]);
 
 int main(){
   fecha fechaDeHoy;
-  char opcion[30] = ""; //cuando el usuario indique que quiere salir, este sera "-1"
+  int salir = 0;
+  pendiente *pendientes;
   fijarFecha(&fechaDeHoy);
-  pendiente *pendientesDeHoy;
   int cantidadDePendientes;
 
-  pendientesDeHoy = leerArchivo(&cantidadDePendientes, "");
-  if(pendientesDeHoy == NULL){
+  pendientes = leerArchivo(&cantidadDePendientes, "");
+  if(pendientes == NULL){
     printf("Ocurrio un error al intentar abrir el archivo\n");
     exit(1);
   }
 
   system("mode con: cols=100 lines=30"); //establecer dimensiones de la ventana
   // loop central del programa
-  while(strcmp(opcion, "-1") != 0){
-    menuPrincipal(pendientesDeHoy, cantidadDePendientes, opcion, fechaDeHoy);
+  while(!salir){
+    salir = menuPrincipal(&pendientes, &cantidadDePendientes, fechaDeHoy);
   }
-  free(pendientesDeHoy);
+  free(pendientes);
   return 0;
 }
 
-void menuPrincipal(pendiente pendientesDeHoy[], int cantidadDePendientes, char opcion[], fecha fechaDeHoy){
+int menuPrincipal(pendiente **pendientes, int *cantidadDePendientes, fecha fechaDeHoy){
+  char opcion[TAMANO_MAXIMO];
   gotoxy(65, 1);
   printf("%s", fechaDeHoy.fechaString);
   gotoxy(0, 3);
-  imprimirPendientesDelDia(pendientesDeHoy, cantidadDePendientes);
-  scanf("%s", opcion); //no usamos & ya que los arrays se pasan por referencia por default
+  imprimirPendientesDelDia(*pendientes, *cantidadDePendientes);
+  fgets(opcion, TAMANO_MAXIMO, stdin);
+
+  if(opcion[0] == 's' || opcion[0] == 'S'){
+    return 1;
+  }
+
+  interpretarComando(opcion, pendientes, cantidadDePendientes);
   system("cls");
+  return 0;
 }
 
 //funcion de prueba para fines de desarrollo
-void generarPendientes(pendiente pendientesDeHoy[]){
+void generarPendientes(pendiente pendientes[]){
   int i;
   for(i=0; i<5; i++){
-    pendientesDeHoy[i].hora = i + 15;
-    pendientesDeHoy[i].minuto = i*2 + 20;
+    pendientes[i].hora = i + 15;
+    pendientes[i].minuto = i*2 + 20;
     if(i == 2 || i == 4){
-      pendientesDeHoy[i].completado = 1;
+      pendientes[i].completado = 1;
     } else{
-      pendientesDeHoy[i].completado = 0;
+      pendientes[i].completado = 0;
     }
-    sprintf(pendientesDeHoy[i].contenido, "Pendiente de prueba no. #%i", i);
+    sprintf(pendientes[i].contenido, "Pendiente de prueba no. #%i", i);
   }
 }
 
@@ -90,16 +101,16 @@ void fijarFecha(fecha *fechaActual){
   sprintf(fechaActual->fechaString, "%s %i de %s del %i", diaSemana, dia, mesString, anio);
 }
 
-void imprimirPendientesDelDia(pendiente pendientesDeHoy[], int cantidadDePendientes){
+void imprimirPendientesDelDia(pendiente pendientes[], int cantidadDePendientes){
   int i;
   char completado;
   for(int i=0; i<cantidadDePendientes; i++){
-    if(pendientesDeHoy[i].completado == 1){
+    if(pendientes[i].completado == 1){
       completado = 'X';
     } else {
       completado = ' ';
     }
-    printf("   [%c] %s (%i:%i)\n\n", completado, pendientesDeHoy[i].contenido, pendientesDeHoy[i].hora, pendientesDeHoy[i].minuto);
+    printf("   [%c] %s (%i:%i)\n\n", completado, pendientes[i].contenido, pendientes[i].hora, pendientes[i].minuto);
   }
 }
 
@@ -113,7 +124,7 @@ int escribirArchivo(pendiente *pendientes, int cantidadDePendientes){
   if(fp != NULL){
     fwrite(pendientes, sizeof(pendiente), cantidadDePendientes, fp);
     fclose(fp);
-    return 0;
+    return 0  ;
   } else {
     return 1;
   }
@@ -131,36 +142,58 @@ pendiente *leerArchivo(int *cantidadDePendientes, char *nombreDelArchivo){
     tamanoDelArchivo = ftell(fp);
     *cantidadDePendientes = tamanoDelArchivo / sizeof(pendiente);
     rewind(fp);
-    buffer = malloc(tamanoDelArchivo);
+    buffer = (pendiente*) malloc(tamanoDelArchivo);
     fread(buffer, sizeof(pendiente), *cantidadDePendientes, fp);
     fclose(fp);
+    return buffer;
   } else {
     return NULL;
   }
-  return buffer;
 }
 
-void interpretarPendiente()
+void interpretarComando(char *opcion, pendiente **pendientes, int *cantidadDePendientes)
 {
 	int i;
-	char buffer[50];
+	char buffer[60]; //TODO: cambiar esto a tamano maximo
+  pendiente pendienteBuffer;
 	switch(opcion[0])
 	{
-		 case 'a':
-		 case 'A':
-			substr(buffer, opcion, 2, strlen(opcion)-1);
-			printf("\n\nLa opcion que escogiste fue la A y el pendiente fue: %s", buffer); 
+    case 'a':
+		case 'A':
+      opcion[strcspn(opcion, "\r\n")] = 0; //quitar la nueva linea del input
+		  substr(pendienteBuffer.contenido, opcion, 2, strlen(opcion)-1);
+      pendienteBuffer.hora = 12;
+      pendienteBuffer.minuto = 2;
+      pendienteBuffer.completado = 0;
+      agregarPendiente(pendienteBuffer, pendientes, cantidadDePendientes);
 			break;
-		 case 'b':
-		 case 'B':
-			substr(buffer, opcion, 2, strlen(opcion)-1);
-			printf("\n\nLa opcion que escogiste fue la B y la tarea fue: %s", buffer); 
-		 break;
+		case 'b':
+		case 'B':
+		  substr(buffer, opcion, 2, strlen(opcion)-1);
+      printf("\n\nLa opcion que escogiste fue la B y la tarea fue: %s", buffer);
+		  break;
+    default:
+      printf("No se reconocio la opcion dada, intente de nuevo\n");
+      fflush(stdin);
+      getchar();
 	}
-	printf("\n\n");
-	system("pause");
-	printf("\n\n\nHecho este programa orgullosamente por un ingeniero de software......AMONOOOOOS\n");
-	getchar();
+}
+
+int agregarPendiente(pendiente nuevoPendiente, pendiente **pendientes, int *cantidadDePendientes){
+  pendiente *temp;
+  *cantidadDePendientes+=1;
+  temp  = (pendiente*) realloc(*pendientes, sizeof(pendiente) * *cantidadDePendientes);
+  if(temp == NULL){
+    printf("Ocurrio un error al agregar el pendiente\n");
+    return 1;
+  }
+  temp[*cantidadDePendientes-1] = nuevoPendiente;
+  *pendientes = temp;
+  if(escribirArchivo(*pendientes, *cantidadDePendientes) != 0){
+    printf("Ocurrio un error al guardar el pendiente\n");
+    return 1;
+  }
+  return 0;
 }
 
 void substr(char *destino, char *str, int inicio, int final){
