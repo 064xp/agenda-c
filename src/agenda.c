@@ -28,6 +28,7 @@ pendiente *leerArchivo(int *, char *);
 void interpretarComando(char *, pendiente **, int *);
 void substr(char *, char *, int, int);
 int agregarPendiente(pendiente, pendiente **, int *);
+int borrarPendiente(int, pendiente **, int *);
 
 void generarPendientes(pendiente pendientes[]);
 
@@ -110,7 +111,7 @@ void imprimirPendientesDelDia(pendiente pendientes[], int cantidadDePendientes){
     } else {
       completado = ' ';
     }
-    printf("   [%c] %s (%i:%i)\n\n", completado, pendientes[i].contenido, pendientes[i].hora, pendientes[i].minuto);
+    printf("   [%i] %s (%i:%i)\n\n", i, pendientes[i].contenido, pendientes[i].hora, pendientes[i].minuto);
   }
 }
 
@@ -153,7 +154,7 @@ pendiente *leerArchivo(int *cantidadDePendientes, char *nombreDelArchivo){
 
 void interpretarComando(char *opcion, pendiente **pendientes, int *cantidadDePendientes)
 {
-	int i;
+	int indice;
 	char buffer[60]; //TODO: cambiar esto a tamano maximo
   pendiente pendienteBuffer;
 	switch(opcion[0])
@@ -169,8 +170,9 @@ void interpretarComando(char *opcion, pendiente **pendientes, int *cantidadDePen
 			break;
 		case 'b':
 		case 'B':
-		  substr(buffer, opcion, 2, strlen(opcion)-1);
-      printf("\n\nLa opcion que escogiste fue la B y la tarea fue: %s", buffer);
+		  substr(buffer, opcion, 1, strlen(opcion)-1);
+      indice = atoi(buffer);
+      borrarPendiente(indice, pendientes, cantidadDePendientes);
 		  break;
     default:
       printf("No se reconocio la opcion dada, intente de nuevo\n");
@@ -194,6 +196,25 @@ int agregarPendiente(pendiente nuevoPendiente, pendiente **pendientes, int *cant
     return 1;
   }
   return 0;
+}
+
+int borrarPendiente(int indice, pendiente **pendientes, int *cantidadDePendientes){
+  int repeticion = *cantidadDePendientes - (indice + 1); //numero de veces que se debe repetir el ciclo
+  int i;
+  pendiente *temp = *pendientes;
+  for(i=0; i<repeticion; i++){
+    temp[indice + i] = temp[indice + i + 1];
+  }
+  *cantidadDePendientes -= 1;
+  temp  = (pendiente*) realloc(*pendientes, sizeof(pendiente) * *cantidadDePendientes);
+  if(temp == NULL){
+    printf("Ocurrio un error al borrar el pendiente\n");
+    return 1;
+  } else {
+    *pendientes = temp;
+    escribirArchivo(*pendientes, *cantidadDePendientes);
+    return 0;
+  }
 }
 
 void substr(char *destino, char *str, int inicio, int final){
