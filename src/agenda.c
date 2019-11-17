@@ -7,8 +7,10 @@
 typedef struct pendiente { //formato de un solo pendiente
   int hora; //hora del pendiente en formato 24h
   int minuto;
-  int completado; //si ya esta completada, sera 1
-  char contenido[60]; //TODO: cambiar esto a tamano maximo
+  int dia;
+  int mes;
+  int tiempo;
+  char contenido[TAMANO_MAXIMO];
 } pendiente;
 
 typedef struct fecha { //fecha del dia actual
@@ -24,9 +26,8 @@ void imprimirPendientesDelDia(struct pendiente[], int);
 void fijarFecha(fecha*);
 void gotoxy(int, int);
 int escribirArchivo(pendiente *, int);
-pendiente *leerArchivo(int *, char *);
+pendiente *leerArchivo(int *);
 void interpretarComando(char *, pendiente **, int *);
-void substr(char *, char *, int, int);
 int agregarPendiente(pendiente, pendiente **, int *);
 int borrarPendiente(int, pendiente **, int *);
 
@@ -39,10 +40,10 @@ int main(){
   fijarFecha(&fechaDeHoy);
   int cantidadDePendientes;
 
-  pendientes = leerArchivo(&cantidadDePendientes, "");
+  pendientes = leerArchivo(&cantidadDePendientes);
   if(pendientes == NULL){
-    printf("Ocurrio un error al intentar abrir el archivo\n");
-    exit(1);
+    printf("No tienes pendientes...\n");
+    cantidadDePendientes = 0;
   }
 
   system("mode con: cols=100 lines=30"); //establecer dimensiones de la ventana
@@ -60,6 +61,7 @@ int menuPrincipal(pendiente **pendientes, int *cantidadDePendientes, fecha fecha
   printf("%s", fechaDeHoy.fechaString);
   gotoxy(0, 3);
   imprimirPendientesDelDia(*pendientes, *cantidadDePendientes);
+
   fgets(opcion, TAMANO_MAXIMO, stdin);
 
   if(opcion[0] == 's' || opcion[0] == 'S'){
@@ -70,22 +72,6 @@ int menuPrincipal(pendiente **pendientes, int *cantidadDePendientes, fecha fecha
   system("cls");
   return 0;
 }
-
-//funcion de prueba para fines de desarrollo
-void generarPendientes(pendiente pendientes[]){
-  int i;
-  for(i=0; i<5; i++){
-    pendientes[i].hora = i + 15;
-    pendientes[i].minuto = i*2 + 20;
-    if(i == 2 || i == 4){
-      pendientes[i].completado = 1;
-    } else{
-      pendientes[i].completado = 0;
-    }
-    sprintf(pendientes[i].contenido, "Pendiente de prueba no. #%i", i);
-  }
-}
-
 
 void fijarFecha(fecha *fechaActual){
   char diaSemana[15];
@@ -105,12 +91,12 @@ void fijarFecha(fecha *fechaActual){
 void imprimirPendientesDelDia(pendiente pendientes[], int cantidadDePendientes){
   int i;
   char completado;
+  if(cantidadDePendientes == 0){
+    printf("\tNo tienes pendientes...\n");
+    return;
+  }
+
   for(int i=0; i<cantidadDePendientes; i++){
-    if(pendientes[i].completado == 1){
-      completado = 'X';
-    } else {
-      completado = ' ';
-    }
     printf("   [%i] %s (%i:%i)\n\n", i, pendientes[i].contenido, pendientes[i].hora, pendientes[i].minuto);
   }
 }
@@ -123,6 +109,9 @@ int escribirArchivo(pendiente *pendientes, int cantidadDePendientes){
   FILE *fp;
   fp = fopen("agenda.dat", "wb");
   if(fp != NULL){
+    if(cantidadDePendientes == 0){
+      return 0;
+    }
     fwrite(pendientes, sizeof(pendiente), cantidadDePendientes, fp);
     fclose(fp);
     return 0  ;
@@ -131,13 +120,12 @@ int escribirArchivo(pendiente *pendientes, int cantidadDePendientes){
   }
 }
 
-pendiente *leerArchivo(int *cantidadDePendientes, char *nombreDelArchivo){
+pendiente *leerArchivo(int *cantidadDePendientes){
   FILE *fp;
   int tamanoDelArchivo;
   pendiente *buffer;
-  nombreDelArchivo = nombreDelArchivo[0] == '\0' ? "agenda.dat" : nombreDelArchivo;
 
-  fp = fopen(nombreDelArchivo, "rb");
+  fp = fopen("agenda.dat", "rb");
   if(fp != NULL){
     fseek(fp, 0L, SEEK_END);
     tamanoDelArchivo = ftell(fp);
@@ -145,27 +133,33 @@ pendiente *leerArchivo(int *cantidadDePendientes, char *nombreDelArchivo){
     rewind(fp);
     buffer = (pendiente*) malloc(tamanoDelArchivo);
     fread(buffer, sizeof(pendiente), *cantidadDePendientes, fp);
-    fclose(fp);
     return buffer;
   } else {
+    fclose(fp);
+    fp = fopen("agenda.dat", "wb");//si no existe el archivo, crearlo
+    fclose(fp);
     return NULL;
   }
+  fclose(fp);
 }
 
 void interpretarComando(char *opcion, pendiente **pendientes, int *cantidadDePendientes)
 {
 	int indice;
-	char buffer[60]; //TODO: cambiar esto a tamano maximo
+	char buffer[TAMANO_MAXIMO];
   pendiente pendienteBuffer;
+
+  strcpy(pendienteBuffer.contenido, "");
+
 	switch(opcion[0])
 	{
     case 'a':
 		case 'A':
       opcion[strcspn(opcion, "\r\n")] = 0; //quitar la nueva linea del input
-		  substr(pendienteBuffer.contenido, opcion, 2, strlen(opcion)-1);
+      strcpy(pendienteBuffer.contenido, (opcion+2));
       pendienteBuffer.hora = 12;
       pendienteBuffer.minuto = 2;
-      pendienteBuffer.completado = 0;
+
       agregarPendiente(pendienteBuffer, pendientes, cantidadDePendientes);
 			break;
 		case 'b':
@@ -175,7 +169,7 @@ void interpretarComando(char *opcion, pendiente **pendientes, int *cantidadDePen
       borrarPendiente(indice, pendientes, cantidadDePendientes);
 		  break;
     default:
-      printf("No se reconocio la opcion dada, intente de nuevo\n");
+      printf("No se reconocio la opcion dada, intente de nuevo\n");//notification
       fflush(stdin);
       getchar();
 	}
@@ -183,6 +177,7 @@ void interpretarComando(char *opcion, pendiente **pendientes, int *cantidadDePen
 
 int agregarPendiente(pendiente nuevoPendiente, pendiente **pendientes, int *cantidadDePendientes){
   pendiente *temp;
+
   *cantidadDePendientes+=1;
   temp  = (pendiente*) realloc(*pendientes, sizeof(pendiente) * *cantidadDePendientes);
   if(temp == NULL){
@@ -202,21 +197,20 @@ int borrarPendiente(int indice, pendiente **pendientes, int *cantidadDePendiente
   int repeticion = *cantidadDePendientes - (indice + 1); //numero de veces que se debe repetir el ciclo
   int i;
   pendiente *temp = *pendientes;
-  for(i=0; i<repeticion; i++){
-    temp[indice + i] = temp[indice + i + 1];
-  }
-  *cantidadDePendientes -= 1;
-  temp  = (pendiente*) realloc(*pendientes, sizeof(pendiente) * *cantidadDePendientes);
-  if(temp == NULL){
-    printf("Ocurrio un error al borrar el pendiente\n");
-    return 1;
-  } else {
-    *pendientes = temp;
-    escribirArchivo(*pendientes, *cantidadDePendientes);
-    return 0;
-  }
-}
+  if(indice <= *cantidadDePendientes || *cantidadDePendientes <= 0){
+    for(i=0; i<repeticion; i++){
+      temp[indice + i] = temp[indice + i + 1];
+    }
 
-void substr(char *destino, char *str, int inicio, int final){
-	strncpy(destino, (str+inicio), final-inicio + 1);
+    *cantidadDePendientes -= 1;
+    temp  = (pendiente*) realloc(*pendientes, sizeof(pendiente) * *cantidadDePendientes);
+
+    if(temp == NULL && *cantidadDePendientes != 0){ //Si borramos el ultimo pendiente, realloc regresara NULL, pero no queremos que regrese la funcion aun
+      return 1;
+    } else {
+      *pendientes = temp;
+    }
+  }
+  escribirArchivo(*pendientes, *cantidadDePendientes);
+  return 0;
 }
