@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "tiempo.h"
+#include <ctype.h>
 
 #define TAMANO_MAXIMO 250
 
@@ -9,7 +10,6 @@ typedef struct pendiente { //formato de un solo pendiente
   int minuto;
   int dia;
   int mes;
-  int tiempo;
   char contenido[TAMANO_MAXIMO];
 } pendiente;
 
@@ -20,7 +20,6 @@ typedef struct fecha { //fecha del dia actual
   int anio;
 } fecha;
 
-//prototipos
 int menuPrincipal(pendiente **, int *, fecha);
 void imprimirPendientesDelDia(struct pendiente[], int);
 void fijarFecha(fecha*);
@@ -30,11 +29,14 @@ pendiente *leerArchivo(int *);
 void interpretarComando(char *, pendiente **, int *);
 int agregarPendiente(pendiente, pendiente **, int *);
 int borrarPendiente(int, pendiente **, int *);
+pendiente solicitarDatos(char *);
+void borrarLinea(int);
+int extraerPrimeraCifra(char *);
+int extraerSegundaCifra(char *);
 
-void generarPendientes(pendiente pendientes[]);
+fecha fechaDeHoy;
 
 int main(){
-  fecha fechaDeHoy;
   int salir = 0;
   pendiente *pendientes;
   fijarFecha(&fechaDeHoy);
@@ -62,6 +64,9 @@ int menuPrincipal(pendiente **pendientes, int *cantidadDePendientes, fecha fecha
   gotoxy(0, 3);
   imprimirPendientesDelDia(*pendientes, *cantidadDePendientes);
 
+  gotoxy(4, 27);
+  printf("[a <pendiente>] Agregar pendiente   [b <numero>] Borrar Pendiente   [s] Salir del programa");
+  gotoxy(4, 28);
   fgets(opcion, TAMANO_MAXIMO, stdin);
 
   if(opcion[0] == 's' || opcion[0] == 'S'){
@@ -97,7 +102,7 @@ void imprimirPendientesDelDia(pendiente pendientes[], int cantidadDePendientes){
   }
 
   for(int i=0; i<cantidadDePendientes; i++){
-    printf("   [%i] %s (%i:%i)\n\n", i, pendientes[i].contenido, pendientes[i].hora, pendientes[i].minuto);
+    printf("   [%i] %s (%i:%i) %i/%i\n\n", i, pendientes[i].contenido, pendientes[i].hora, pendientes[i].minuto, pendientes[i].dia, pendientes[i].mes);
   }
 }
 
@@ -156,15 +161,12 @@ void interpretarComando(char *opcion, pendiente **pendientes, int *cantidadDePen
     case 'a':
 		case 'A':
       opcion[strcspn(opcion, "\r\n")] = 0; //quitar la nueva linea del input
-      strcpy(pendienteBuffer.contenido, (opcion+2));
-      pendienteBuffer.hora = 12;
-      pendienteBuffer.minuto = 2;
-
+      pendienteBuffer = solicitarDatos(opcion+2);
       agregarPendiente(pendienteBuffer, pendientes, cantidadDePendientes);
 			break;
 		case 'b':
 		case 'B':
-		  substr(buffer, opcion, 1, strlen(opcion)-1);
+      strcpy(buffer, (opcion+1));
       indice = atoi(buffer);
       borrarPendiente(indice, pendientes, cantidadDePendientes);
 		  break;
@@ -213,4 +215,89 @@ int borrarPendiente(int indice, pendiente **pendientes, int *cantidadDePendiente
   }
   escribirArchivo(*pendientes, *cantidadDePendientes);
   return 0;
+}
+
+pendiente solicitarDatos(char *contenido){
+  pendiente pendienteTemp;
+  int dia, mes, hora, minuto;
+  char buffer[10];
+
+  if(contenido[0] == '\0'){ //si esta vacio
+    borrarLinea(27);
+    gotoxy(4, 27);
+    printf("Contenido:");
+    borrarLinea(28);
+    gotoxy(4, 28);
+    fgets(contenido, TAMANO_MAXIMO, stdin);
+    contenido[strcspn(contenido, "\r\n")] = 0; //quitar la nueva linea del input
+  }
+
+  borrarLinea(27);
+  gotoxy(4, 27);
+  printf("Fecha: [Dia Mes]\n");
+  borrarLinea(28);
+  gotoxy(4, 28);
+  fgets(buffer, 9, stdin);
+  dia = extraerPrimeraCifra(buffer);
+  mes = extraerSegundaCifra(buffer);
+
+  borrarLinea(27);
+  gotoxy(4, 27);
+  printf("Hora: [Hora Minuto]\n");
+  borrarLinea(28);
+  gotoxy(4, 28);
+  fgets(buffer, 9, stdin);
+  hora = extraerPrimeraCifra(buffer);
+  minuto = extraerSegundaCifra(buffer);
+
+  pendienteTemp.dia = dia;
+  pendienteTemp.mes = mes;
+  pendienteTemp.hora = hora;
+  pendienteTemp.minuto = minuto;
+  strcpy(pendienteTemp.contenido, contenido);
+
+  return pendienteTemp;
+}
+
+void borrarLinea(int y){
+  int i;
+  gotoxy(0, y);
+  for(i=0; i<99; i++){
+    printf(" ");
+  }
+}
+
+int extraerPrimeraCifra(char *input){
+  char buffer[4];
+  int i;
+
+  for(i=0; i<strlen(input); i++){
+    if(isdigit(input[i])){
+      buffer[0] = input[i];
+      if(isdigit(input[i+1])){
+        buffer[1] = input[i+1];
+      }//fin segundo if
+      break;
+    }//fin primer if
+  }//fin for
+  return atoi(buffer);
+}
+
+int extraerSegundaCifra(char *input){
+  char buffer[4];
+  int i, cifrasEncontradas = 0;
+
+  for(i=0; i<strlen(input); i++){
+    if(isdigit(input[i])){
+      if(cifrasEncontradas > 0 && !isdigit(input[i-1])){
+        buffer[0] = input[i];
+        if(isdigit(input[i+1])){
+          buffer[1] = input[i+1];
+          break;
+        }//fin tercer if
+      }//fin segundo if
+      cifrasEncontradas += 1;
+    }//fin primer if
+  }//fin for
+  return atoi(buffer);
 }
