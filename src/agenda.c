@@ -14,15 +14,16 @@ typedef struct pendiente { //formato de un solo pendiente
 } pendiente;
 
 typedef struct fecha { //fecha del dia actual
-  char fechaString[30];
+  char fechaString[50];
   int dia;
   int mes;
   int anio;
 } fecha;
 
 int menuPrincipal(pendiente **, int *, fecha);
-void imprimirPendientesDelDia(struct pendiente[], int);
-void fijarFecha(fecha*);
+void imprimirPendientes(pendiente *, int);
+void imprimirPendientesDeHoy(pendiente *, int);
+void fijarFecha();
 void gotoxy(int, int);
 int escribirArchivo(pendiente *, int);
 pendiente *leerArchivo(int *);
@@ -39,7 +40,7 @@ fecha fechaDeHoy;
 int main(){
   int salir = 0;
   pendiente *pendientes;
-  fijarFecha(&fechaDeHoy);
+  fijarFecha();
   int cantidadDePendientes;
 
   pendientes = leerArchivo(&cantidadDePendientes);
@@ -62,7 +63,7 @@ int menuPrincipal(pendiente **pendientes, int *cantidadDePendientes, fecha fecha
   gotoxy(65, 1);
   printf("%s", fechaDeHoy.fechaString);
   gotoxy(0, 3);
-  imprimirPendientesDelDia(*pendientes, *cantidadDePendientes);
+  imprimirPendientes(*pendientes, *cantidadDePendientes);
 
   gotoxy(4, 27);
   printf("[a <pendiente>] Agregar pendiente   [b <numero>] Borrar Pendiente   [s] Salir del programa");
@@ -78,7 +79,7 @@ int menuPrincipal(pendiente **pendientes, int *cantidadDePendientes, fecha fecha
   return 0;
 }
 
-void fijarFecha(fecha *fechaActual){
+void fijarFecha(){
   char diaSemana[15];
   int dia = conseguirDiaDelMes();
   char mesString[15];
@@ -87,22 +88,43 @@ void fijarFecha(fecha *fechaActual){
   conseguirDiaDeLaSemana(diaSemana);
   conseguirMesString(mesString);
 
-  fechaActual->dia = dia;
-  fechaActual->mes = mes;
-  fechaActual->anio = anio;
-  sprintf(fechaActual->fechaString, "%s %i de %s del %i", diaSemana, dia, mesString, anio);
+  fechaDeHoy.dia = dia;
+  fechaDeHoy.mes = mes+1;
+  fechaDeHoy.anio = anio;
+  sprintf(fechaDeHoy.fechaString, "%s %i de %s del %i", diaSemana, dia, mesString, anio);
 }
 
-void imprimirPendientesDelDia(pendiente pendientes[], int cantidadDePendientes){
+void imprimirPendientes(pendiente *pendientes, int cantidadDePendientes){
   int i;
-  char completado;
+
   if(cantidadDePendientes == 0){
     printf("\tNo tienes pendientes...\n");
     return;
   }
 
-  for(int i=0; i<cantidadDePendientes; i++){
-    printf("   [%i] %s (%i:%i) %i/%i\n\n", i, pendientes[i].contenido, pendientes[i].hora, pendientes[i].minuto, pendientes[i].dia, pendientes[i].mes);
+  imprimirPendientesDeHoy(pendientes, cantidadDePendientes);
+  printf("\n Otros Pendientes:\n\n");
+  for(i=0; i<cantidadDePendientes; i++){
+    if(!(pendientes[i].dia == fechaDeHoy.dia && pendientes[i].mes == fechaDeHoy.mes) && pendientes[i].mes != 0){
+      printf("   [%i] %s %i/%i\n\n", i, pendientes[i].contenido, pendientes[i].dia, pendientes[i].mes);
+    }
+  }
+}
+
+void imprimirPendientesDeHoy(pendiente *pendientes, int cantidadDePendientes){
+  int i, contador = 0;
+
+  printf(" Pendientes de Hoy\n\n");
+
+  for(i=0; i<cantidadDePendientes; i++){
+    if((pendientes[i].dia == fechaDeHoy.dia && pendientes[i].mes == fechaDeHoy.mes) || pendientes[i].dia == 0){
+      printf("   [%i] %s (%i:%i)\n\n", i, pendientes[i].contenido, pendientes[i].hora, pendientes[i].minuto);
+      contador+=1;
+    }
+  }
+
+  if(contador == 0){
+    printf("   No tienes pendientes para hoy...\n");
   }
 }
 
@@ -153,8 +175,6 @@ void interpretarComando(char *opcion, pendiente **pendientes, int *cantidadDePen
 	int indice;
 	char buffer[TAMANO_MAXIMO];
   pendiente pendienteBuffer;
-
-  strcpy(pendienteBuffer.contenido, "");
 
 	switch(opcion[0])
 	{
@@ -234,7 +254,7 @@ pendiente solicitarDatos(char *contenido){
 
   borrarLinea(27);
   gotoxy(4, 27);
-  printf("Fecha: [Dia Mes]\n");
+  printf("Fecha: [DD MM]\n");
   borrarLinea(28);
   gotoxy(4, 28);
   fgets(buffer, 9, stdin);
@@ -243,7 +263,7 @@ pendiente solicitarDatos(char *contenido){
 
   borrarLinea(27);
   gotoxy(4, 27);
-  printf("Hora: [Hora Minuto]\n");
+  printf("Hora: [HH MM]\n");
   borrarLinea(28);
   gotoxy(4, 28);
   fgets(buffer, 9, stdin);
