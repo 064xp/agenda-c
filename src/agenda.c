@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "tiempo.h"
+#include <string.h>
 #include <ctype.h>
 
 #define TAMANO_MAXIMO 250
